@@ -5,8 +5,6 @@
 
 #define FUNCION 10
 #define FRECUENCIA 11
-#include <avr/pgmspace.h>
-
 
 const PROGMEM byte R2RLookup_Sine[256] =
 {
@@ -129,60 +127,66 @@ const PROGMEM byte R2RLookup_ECG[256] =
 64,64,65,65,65,66,67,68,69,71,72,73
 };
 
-int func = 0;
-int freq = 1; // Ajusta esta variable para cambiar la frecuencia en microsegundos
+int func=0;
+int freq=0;
 
-void setup() {
-    DDRD = 0b11111111;
-    pinMode(FUNCION, INPUT_PULLUP);
+void setup(){
+   DDRD = 0b11111111;
+   pinMode(FUNCION, INPUT_PULLUP);
+   pinMode(FRECUENCIA, INPUT_PULLUP);
 }
 
-void loop() {
-    if (digitalRead(FUNCION) == LOW) {
-        if (func > 5)
-            func = 0;
-        else
-            func++;
-    }
-
-    switch (func) {
-        case 0:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_Sine[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        case 1:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_Square[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        case 2:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_Sawtooth[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        case 3:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_RevSawtooth[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        case 4:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_Triangle[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        case 5:
-            for (int i = 0; i < 256; i++) {
-                PORTD = pgm_read_byte_near(&R2RLookup_ECG[i]);
-                delayMicroseconds(freq);
-            }
-            break;
-        default:
-            break;
-    }
+void loop(){
+   if(digitalRead(FRECUENCIA)==LOW){
+      if(freq>100)
+         freq=0;
+      else
+         freq++;    
+   }   
+   if(digitalRead(FUNCION)==LOW){
+      if(func>5)
+         func=0;
+      else
+         func++;    
+   }
+   switch(func){
+   case 0:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_Sine[i]);
+         delayMicroseconds(freq);
+      }
+      break;
+   case 1:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_Square[i]);
+         delayMicroseconds(freq);
+      }
+      break;
+   case 2:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_Sawtooth[i]);
+         delayMicroseconds(freq);
+      }
+      break;     
+   case 3:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_RevSawtooth[i]);
+         delayMicroseconds(freq);
+      }
+      break; 
+   case 4:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_Triangle[i]);
+         delayMicroseconds(freq);
+      }
+      break; 
+   case 5:
+      for(int i=0; i<256; i++){
+         PORTD=pgm_read_word(&R2RLookup_ECG[i]);
+         delayMicroseconds(freq);
+      }
+      break;
+   default:
+      break;
+   } 
 }
