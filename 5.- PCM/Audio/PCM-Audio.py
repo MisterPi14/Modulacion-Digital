@@ -61,7 +61,7 @@ class AplicacionAudio:
         self.btn_reproducir.pack(side=tk.LEFT, padx=20)
 
         self.contenedor_botonera_cuantizacion = tk.Frame(self.contenedor_controles)
-        #self.contenedor_botonera_cuantizacion.pack(padx=10, pady=100)
+        self.contenedor_botonera_cuantizacion.pack(padx=10, pady=100)
 
         self.btn_recuantizar = tk.Button(self.contenedor_botonera_cuantizacion, text="Recuantizar y Guardar", command=self.recuantizar_y_guardar)
         self.btn_recuantizar.pack(side=tk.LEFT, padx=20)

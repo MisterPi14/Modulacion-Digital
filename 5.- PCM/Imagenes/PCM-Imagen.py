@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox, ttk
 from PIL import Image, ImageTk
 import numpy as np
 
@@ -25,10 +25,6 @@ class ImageApp:
         self.label = tk.Label(master, image=self.photo)
         self.label.pack()
 
-        # Crear un botón para recuantizar
-        self.btn_quantize = tk.Button(master, text="Recuantizar", command=self.quantize_image)
-        self.btn_quantize.pack(side=tk.LEFT, padx=5, pady=5)
-
         # Crear un botón para convertir a escala de grises
         self.btn_grayscale = tk.Button(master, text="Matriz de 255", command=self.convert_to_grayscale)
         self.btn_grayscale.pack(side=tk.LEFT, padx=5, pady=5)
@@ -41,9 +37,24 @@ class ImageApp:
         self.btn_color = tk.Button(master, text="3 Matrices", command=self.show_original_image)
         self.btn_color.pack(side=tk.LEFT, padx=5, pady=5)
 
-    def quantize_image(self):
-        bits = simpledialog.askinteger("Recuantización", "Cuantos niveles de cuantizacion?:\n1 bit de codigo PCM\n2 bits de codigo PCM\n4 bits de codigo PCM\n8 bits de codigo PCM",
-                                       minvalue=1, maxvalue=8)
+        # Interfaz de la cuantizacion
+        self.cuantizacionGUI = tk.Frame(self.master)
+        self.cuantizacionGUI.pack(padx=10, pady=100)
+        
+        # Crear un botón para recuantizar
+        self.btn_quantize = tk.Button(master, text="Recuantizar", command=self.quantize_image)
+        self.btn_quantize.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.label1 = tk.Label(self.cuantizacionGUI, text="Cantidad bits/muestra:\t", font=('Arial', 12))
+        self.label1.pack(side=tk.LEFT)
+        self.combox = ttk.Combobox(self.cuantizacionGUI)
+        self.combox['values'] = ("1", "2","4","8")  # Lista de opciones
+        self.combox.current(0)  # Establecer la opción predeterminada
+        self.combox.pack(pady=20)
+        self.combox.bind("<<ComboboxSelected>>", self.quantize_image)  # Manejar la selección
+
+    def quantize_image(self, event=None):
+        bits = int(self.combox.get())
         if bits:
             if hasattr(self, 'gray_image'):  # Si la imagen está en escala de grises
                 quantized_image = self.quantize(np.array(self.gray_image), bits)
@@ -52,16 +63,19 @@ class ImageApp:
             else:  # Si la imagen está en color
                 quantized_image = self.quantize(np.array(self.original_resized_image), bits)
 
+            # Redimensionar la imagen cuantizada a las dimensiones originales
+            quantized_image_pil = Image.fromarray(quantized_image).resize((800, 550))
+            
             # Guardar la imagen recuantizada como archivo de imagen
             save_filename = f"recuantized_image_{bits}bits.jpg"
-            Image.fromarray(quantized_image).save(save_filename)
+            quantized_image_pil.save(save_filename)
 
             # Guardar el código PCM en un archivo de texto
             txt_filename = f"recuantized_image_{bits}bits.txt"
             np.savetxt(txt_filename, quantized_image.flatten(), fmt='%d')
 
             # Mostrar la imagen recuantizada
-            self.photo = ImageTk.PhotoImage(Image.fromarray(quantized_image))
+            self.photo = ImageTk.PhotoImage(quantized_image_pil)
             self.label.config(image=self.photo)
 
     def quantize(self, image_data, bits):
