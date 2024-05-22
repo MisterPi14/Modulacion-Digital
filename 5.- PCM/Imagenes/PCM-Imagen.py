@@ -7,12 +7,22 @@ class ImageApp:
     def __init__(self, master):
         self.master = master
         master.title("Visor de Imágenes")
+
+        # Cambiar el color de fondo del marco principal
+        master.configure(bg='#7D3711')  # Color "Brown"
+
+        # Crear un marco para los controles y cambiar su color de fondo
+        self.controls_frame = tk.Frame(master, bg='#8A5C24')  # Color "Brown"
+        self.controls_frame.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
+
+        # Crear un marco para la imagen y cambiar su color de fondo
+        self.image_frame = tk.Frame(master, bg='#FFFFFF')  # Color "White"
+        self.image_frame.pack(side=tk.RIGHT, padx=10, pady=10, fill=tk.BOTH, expand=True)
+
         # Ruta de la imagen
         self.image_path = "Imagen.jpg"
         # Cargar la imagen original
         self.original_image = Image.open(self.image_path)
-        
-        master.configure(bg='blue')
 
         # Redimensionar la imagen para que sea más pequeña y conservar una copia de la original
         self.resized_image = self.original_image.resize((800, 550))
@@ -22,35 +32,40 @@ class ImageApp:
         self.photo = ImageTk.PhotoImage(self.resized_image)
 
         # Crear un widget de etiqueta para mostrar la imagen
-        self.label = tk.Label(master, image=self.photo)
+        self.label = tk.Label(self.image_frame, image=self.photo)
         self.label.pack()
 
+        # Crear una etiqueta en la parte superior del marco de controles
+        self.label2 = tk.Label(self.controls_frame, text="Tipo de imagen", bg='#8A5C24', font=('Cascadia Code ExtraLight', 24))
+        self.label2.pack(side=tk.TOP, anchor='nw', pady=5)
+
+        # Crear un botón para convertir a color
+        self.btn_color = tk.Button(self.controls_frame, text="A color (3 Matrices de 255 niveles)", command=self.show_original_image)
+        self.btn_color.pack(side=tk.TOP, padx=5, pady=5)
+
         # Crear un botón para convertir a escala de grises
-        self.btn_grayscale = tk.Button(master, text="Matriz de 255", command=self.convert_to_grayscale)
-        self.btn_grayscale.pack(side=tk.LEFT, padx=5, pady=5)
+        self.btn_grayscale = tk.Button(self.controls_frame, text="Escala de grises (Matriz de 255 niveles)", command=self.convert_to_grayscale)
+        self.btn_grayscale.pack(side=tk.TOP, padx=5, pady=5)
 
         # Crear un botón para convertir a blanco y negro
-        self.btn_black_white = tk.Button(master, text="Matriz de 2", command=self.convert_to_black_white)
-        self.btn_black_white.pack(side=tk.LEFT, padx=5, pady=5)
+        self.btn_black_white = tk.Button(self.controls_frame, text="Blanco y negro (Matriz de 2 niveles)", command=self.convert_to_black_white)
+        self.btn_black_white.pack(side=tk.TOP, padx=5, pady=5)
 
-        # Crear un botón para volver a la imagen original a color
-        self.btn_color = tk.Button(master, text="3 Matrices", command=self.show_original_image)
-        self.btn_color.pack(side=tk.LEFT, padx=5, pady=5)
+        # Crear una etiqueta para la recuantización
+        self.label3 = tk.Label(self.controls_frame, text="Recuantización", bg='#8A5C24', font=('Cascadia Code ExtraLight', 24))
+        self.label3.pack(side=tk.TOP, anchor='nw', pady=5)
 
         # Interfaz de la cuantizacion
-        self.cuantizacionGUI = tk.Frame(self.master)
-        self.cuantizacionGUI.pack(padx=10, pady=100)
-        
-        # Crear un botón para recuantizar
-        self.btn_quantize = tk.Button(master, text="Recuantizar", command=self.quantize_image)
-        self.btn_quantize.pack(side=tk.LEFT, padx=5, pady=5)
+        self.cuantizacionGUI = tk.Frame(self.controls_frame, bg='#8A5C24')
+        self.cuantizacionGUI.pack(side=tk.TOP, padx=10, pady=10, fill=tk.X)
 
-        self.label1 = tk.Label(self.cuantizacionGUI, text="Cantidad bits/muestra:\t", font=('Arial', 12))
+        self.label1 = tk.Label(self.cuantizacionGUI, text="Cantidad bits/muestra:", bg='#8A5C24', font=('Arial', 12))
         self.label1.pack(side=tk.LEFT)
+
         self.combox = ttk.Combobox(self.cuantizacionGUI)
-        self.combox['values'] = ("1", "2","4","8")  # Lista de opciones
+        self.combox['values'] = ("1", "2", "4", "8")  # Lista de opciones
         self.combox.current(0)  # Establecer la opción predeterminada
-        self.combox.pack(pady=20)
+        self.combox.pack(side=tk.LEFT, pady=10)
         self.combox.bind("<<ComboboxSelected>>", self.quantize_image)  # Manejar la selección
 
     def quantize_image(self, event=None):
