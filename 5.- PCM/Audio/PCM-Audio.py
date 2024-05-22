@@ -46,7 +46,7 @@ class AplicacionAudio:
         
         self.fb_slider.configure(sliderlength=20, troughcolor='blue', command=self.ajustar_deslizador)
         self.fb_slider.pack(side=tk.RIGHT)
-        self.fb_slider.get()#leer el valor del slide
+        self.fb_slider.get()  # leer el valor del slide
 
         contenedor_botonera_acciones = tk.Frame(self.contenedor_controles)
         contenedor_botonera_acciones.pack(padx=10, pady=10)
@@ -120,11 +120,11 @@ class AplicacionAudio:
         self.eje.plot(audio_array)
         self.eje.set_title("Señal de audio digital")
         self.eje.set_xlabel("Muestras")
-        self.eje.set_ylabel("Nivel de vontaje")
+        self.eje.set_ylabel("Nivel de voltaje")
         self.lienzo.draw()
 
     def aplicar_resolucion_bits(self, event=None):
-        bits=int(self.combo.get())
+        bits = int(self.combo.get())
         if bits:
             audio_array = np.frombuffer(b''.join(self.cuadros), dtype=np.int16)
             cuantificado = self.cuantificar(audio_array, bits)
@@ -132,11 +132,11 @@ class AplicacionAudio:
             self.reproducir_audio_recuantizado(bits)
 
     def recuantizar_y_guardar(self):
-        messagebox.showinfo("Instrucciones","Introduce en la caja de opciones el numero o profundidad de bits para el codigo PCM (sin contemplar signo)")
+        messagebox.showinfo("Instrucciones", "Introduce en la caja de opciones el numero o profundidad de bits para el codigo PCM (sin contemplar signo)")
         self.etiqueta_combo = tk.Label(self.contenedor_botonera_cuantizacion, text="Cantidad bits/muestra:\t", font=('Arial', 12))
         self.etiqueta_combo.pack(side=tk.LEFT)
         self.combo = ttk.Combobox(self.contenedor_botonera_cuantizacion)
-        self.combo['values'] = ("1", "2","4","8")  # Lista de opciones
+        self.combo['values'] = ("1", "2", "4", "8")  # Lista de opciones
         self.combo.current(0)  # Establecer la opción predeterminada
         self.combo.pack(pady=20)
         self.combo.bind("<<ComboboxSelected>>", self.aplicar_resolucion_bits)  # Manejar la selección
@@ -149,7 +149,7 @@ class AplicacionAudio:
     def guardar_wav_recuantizado(self, cuantificado_array, bits):
         output_filename = f"Grabacion_cuantizada_a_{bits}bits.wav"
         txt_filename = f"Codigo_de_cuantizacion_a_{bits}bits.txt"
-        np.savetxt(txt_filename, cuantificado_array, fmt='%d')  # Guardar en formato de texto
+        self.guardar_binario(cuantificado_array, txt_filename, bits)  # Guardar en formato binario
 
         wf = wave.open(output_filename, 'wb')
         wf.setnchannels(self.CANALES)
@@ -157,6 +157,13 @@ class AplicacionAudio:
         wf.setframerate(self.TASA)
         wf.writeframes(cuantificado_array.tobytes())
         wf.close()
+
+    def guardar_binario(self, cuantificado_array, filename, bits):
+        with open(filename, 'w') as f:
+            for muestra in cuantificado_array:
+                # Convertir cada muestra a su representación binaria con el número de bits especificado
+                binario = format(muestra & ((1 << bits) - 1), f'0{bits}b')
+                f.write(binario + '\n')
 
     def reproducir_audio_recuantizado(self, bits):
         if bits:
@@ -169,9 +176,9 @@ class AplicacionAudio:
     def reproducir_audio_desde_archivo(self, filename):
         with wave.open(filename, 'rb') as wf:
             stream = self.pa.open(format=self.pa.get_format_from_width(wf.getsampwidth()),
-                                 channels=wf.getnchannels(),
-                                 rate=wf.getframerate(),
-                                 output=True)
+                                  channels=wf.getnchannels(),
+                                  rate=wf.getframerate(),
+                                  output=True)
             data = wf.readframes(self.BLOQUE)
             while data:
                 stream.write(data)
