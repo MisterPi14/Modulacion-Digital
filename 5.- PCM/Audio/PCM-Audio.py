@@ -121,6 +121,11 @@ class AplicacionAudio:
         self.eje.set_title("Señal de audio digital")
         self.eje.set_xlabel("Muestras")
         self.eje.set_ylabel("Nivel de voltaje")
+
+        # Ajustar los límites del eje Y para aumentar la escala en amplitud
+        max_amplitud = np.max(np.abs(audio_array))
+        self.eje.set_ylim(-max_amplitud * 2, max_amplitud * 2)
+
         self.lienzo.draw()
 
     def aplicar_resolucion_bits(self, event=None):
@@ -129,6 +134,7 @@ class AplicacionAudio:
             audio_array = np.frombuffer(b''.join(self.cuadros), dtype=np.int16)
             cuantificado = self.cuantificar(audio_array, bits)
             self.guardar_wav_recuantizado(cuantificado, bits)
+            self.trazar_forma_onda_audio(cuantificado)  # Graficar la señal cuantizada
             self.reproducir_audio_recuantizado(bits)
 
     def recuantizar_y_guardar(self):
