@@ -121,11 +121,11 @@ class AplicacionAudio:
         self.eje.set_title("Señal de audio digital")
         self.eje.set_xlabel("Muestras")
         self.eje.set_ylabel("Nivel de voltaje")
-
         # Ajustar los límites del eje Y para aumentar la escala en amplitud
         max_amplitud = np.max(np.abs(audio_array))
-        self.eje.set_ylim(-max_amplitud * 2, max_amplitud * 2)
-
+        self.eje.set_ylim(-max_amplitud * 1.2, max_amplitud * 1.2)
+        # Ajustar los límites del eje X para aumentar la escala en el tiempo
+        self.eje.set_xlim(0, len(audio_array) * 1.2)
         self.lienzo.draw()
 
     def aplicar_resolucion_bits(self, event=None):
@@ -167,8 +167,9 @@ class AplicacionAudio:
     def guardar_binario(self, cuantificado_array, filename, bits):
         with open(filename, 'w') as f:
             for muestra in cuantificado_array:
-                # Convertir cada muestra a su representación binaria con el número de bits especificado
-                binario = format(muestra & ((1 << bits) - 1), f'0{bits}b')
+                # Ajustar cada muestra a n+1 bits para incluir el bit de signo
+                n_bits_muestra = bits + 1
+                binario = format(muestra & ((1 << n_bits_muestra) - 1), f'0{n_bits_muestra}b')
                 f.write(binario + '\n')
 
     def reproducir_audio_recuantizado(self, bits):
