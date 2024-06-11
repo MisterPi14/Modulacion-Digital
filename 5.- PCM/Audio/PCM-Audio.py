@@ -142,15 +142,17 @@ class AplicacionAudio:
         self.etiqueta_combo = tk.Label(self.contenedor_botonera_cuantizacion, text="Cantidad bits/muestra:\t", font=('Arial', 12))
         self.etiqueta_combo.pack(side=tk.LEFT)
         self.combo = ttk.Combobox(self.contenedor_botonera_cuantizacion)
-        self.combo['values'] = ("1", "2", "4", "8")  # Lista de opciones
+        self.combo['values'] = ("1", "2","4", "8","16","32","64")  # Lista de opciones
         self.combo.current(0)  # Establecer la opción predeterminada
         self.combo.pack(pady=20)
         self.combo.bind("<<ComboboxSelected>>", self.aplicar_resolucion_bits)  # Manejar la selección
 
     def cuantificar(self, audio_array, bits):
         max_val = np.max(np.abs(audio_array))
-        levels = 2 ** bits
-        return np.int16(((audio_array + max_val) / (2 * max_val) * (levels - 1)).round() * (2 * max_val / (levels - 1)) - max_val)
+        audio_array = audio_array / max_val
+        dinamicRange = (2 ** bits)-1
+        quantized_audio = np.round(audio_array * dinamicRange) / dinamicRange * max_val
+        return quantized_audio.astype(np.int16)
 
     def guardar_wav_recuantizado(self, cuantificado_array, bits):
         output_filename = f"Grabacion_cuantizada_a_{bits}bits.wav"
@@ -198,3 +200,6 @@ Interfaz.title("Audio Convertidor mono-estereo y PCM")
 Interfaz.config(bg="lightblue")
 AplicacionAudio(Interfaz)
 Interfaz.mainloop()
+
+
+
