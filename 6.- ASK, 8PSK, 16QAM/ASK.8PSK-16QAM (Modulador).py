@@ -4,6 +4,7 @@ from PIL import Image, ImageTk, ImageOps
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
+from scipy.interpolate import interp1d
 import os
 
 class ImageProcessorApp:
@@ -84,9 +85,11 @@ class ImageProcessorApp:
         # Asegúrate de que el arreglo sea 1D para obtener los primeros 10 valores
         flattened_image = image_array.flatten()
         print(flattened_image)
+
+        conjunto_bits=1
         
         # Obtener los primeros 10 valores
-        first_10_values = flattened_image[:10]
+        first_10_values = flattened_image[:conjunto_bits]
         print(first_10_values)
         
         # Convertir a binario
@@ -100,7 +103,11 @@ class ImageProcessorApp:
         # Aplanar la lista de listas de bits para la gráfica
         bit_sequence_flat = [bit for sequence in bit_sequences for bit in sequence]
         print(bit_sequence_flat)
-        
+ 
+        # Convertir 0 a -1 en bit_sequence_flat
+        bit_sequence_flat = [-1 if bit == 0 else 1 for bit in bit_sequence_flat]
+        print(bit_sequence_flat)
+
         # Calcular el intervalo de tiempo para cada bit
         longitud_bits_por_segundo = len(bit_sequence_flat)
         
@@ -108,23 +115,30 @@ class ImageProcessorApp:
         x_values = np.linspace(0, 1, longitud_bits_por_segundo, endpoint=False)
         y_values = bit_sequence_flat
 
-
         # Parámetros de la señal cosenoidal
         amplitude = 1.0  # Voltios
-        frequency = 25000000  # 1 MHz
-        # Necesitamos muchos más puntos para representar adecuadamente una señal de 1 MHz
-        x_dense = np.linspace(0, 1, 1000)
+        frequency = 0.5e6  # 5 MHz
+        x_dense = np.linspace(0, 1, 10000)# Necesitamos muchos más puntos para representar adecuadamente una señal de 1 MHz
         cosine_signal = amplitude * np.cos(2 * np.pi * frequency * x_dense)
 
+        # Interpolar la señal digital para que coincida con x_dense
+        interpolation_function = interp1d(x_values, y_values, kind='nearest', fill_value='extrapolate')
+        y_interpolated = interpolation_function(x_dense)
         
+        # Generar la señal modulada AM
+        señal_modulada_AM = (1 + y_interpolated) * (amplitude/2) * np.cos(2 * np.pi * frequency * x_dense)
 
         # Crear una figura con 3 subplots (en una columna)
         fig, axs = plt.subplots(3, 1, figsize=(10, 6))
 
-        # Primera gráfica: Señal digital original
-        axs[0].step(x_values, y_values, where='mid')
-        axs[0].set_ylim(-0.5, 1.5)
-        axs[0].set_yticks([0, 1])
+        sec = [i * (1 / len(bit_sequence_flat)) for i in range(0, len(bit_sequence_flat)+1)]
+
+
+        # Primera gráfica: Señal digital original (interpolada)
+        axs[0].step(x_dense, y_interpolated, where='post')
+        axs[0].set_ylim(-1.5, 1.5)
+        axs[0].set_yticks([-1, 0, 1])
+        axs[0].set_xticks(sec)
         axs[0].set_xlabel('Time (seconds)')
         axs[0].set_ylabel('Bit Value')
         axs[0].set_title('Digital Signal Representation of First 10 Pixel Values in Binary')
@@ -137,31 +151,16 @@ class ImageProcessorApp:
         axs[1].set_ylabel('Amplitude (V)')
         axs[1].grid(True)
 
-        # Tercera gráfica: Otra transformación (por ejemplo, duplicar cada bit)
-        y_values_duplicated = [bit for bit in y_values for _ in range(2)]
-        x_values_duplicated = np.linspace(0, 1, len(y_values_duplicated), endpoint=False)
-        axs[2].step(x_values_duplicated, y_values_duplicated, where='mid', color='g')
-        axs[2].set_ylim(-0.5, 1.5)
-        axs[2].set_yticks([0, 1])
+        # Tercera gráfica: Señal modulada AM
+        axs[2].plot(x_dense, señal_modulada_AM)
+        axs[2].set_title('Señal Modulada AM')
         axs[2].set_xlabel('Time (seconds)')
-        axs[2].set_ylabel('Bit Value')
-        axs[2].set_title('Duplicated Digital Signal')
+        axs[2].set_ylabel('Amplitude (V)')
         axs[2].grid(True)
-            
         
         # Ajustar el layout para que las etiquetas no se solapen
         plt.tight_layout()
         plt.show()
-        # Graficar la señal digital
-        #plt.figure(figsize=(10, 2))
-        #plt.step(x_values, y_values, where='mid')
-        #plt.ylim(-0.5, 1.5)
-        #plt.yticks([0, 1])
-        #plt.xlabel('Bit Index')
-        #plt.ylabel('Bit Value')
-        #plt.title('Digital Signal Representation of First 10 Pixel Values in Binary')
-        #plt.grid(True)
-        #plt.show()
 
     def modulation_process(self):
         if self.file_type == 'I' and self.image is not None and self.modulation is not None and self.bits is not None:
