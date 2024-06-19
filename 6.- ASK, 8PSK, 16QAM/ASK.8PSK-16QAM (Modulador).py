@@ -39,10 +39,26 @@ class ImageProcessorApp:
         self.bits = None
 
     def open_file(self):
-        file_type = simpledialog.askstring("Select File Type", "Introduce 'I' para imagen o 'A' para audio")
+        self.file_type = tk.StringVar()
+
+        top = tk.Toplevel(self.root)
+        top.title("Select File Type")
+
+        image_check = tk.Checkbutton(top, text="Image", variable=self.file_type, onvalue="I", offvalue="")
+        audio_check = tk.Checkbutton(top, text="Audio", variable=self.file_type, onvalue="A", offvalue="")
+        select_button = tk.Button(top, text="Seleccionar", command=top.destroy)
+
+        image_check.pack()
+        audio_check.pack()
+        select_button.pack()
+
+        self.root.wait_window(top)
+
+        file_type = self.file_type.get()
         if file_type not in ['I', 'A']:
-            messagebox.showerror("Invalid Input", "Introduzca un caracter valido")
+            messagebox.showerror("Invalid Input", "Seleccione una opción válida")
             return
+        
         self.file_type = file_type
         if file_type == 'I':
             self.file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
@@ -81,39 +97,23 @@ class ImageProcessorApp:
         self.bits = bits
         self.modulation_process()
 
-    def plot_binary_signal(self, image_array):
-        # Asegúrate de que el arreglo sea 1D para obtener los primeros 10 valores
+    def plot_binary_signal(self, image_array, n_bits_por_baudio):
+        
         flattened_image = image_array.flatten()
-        print(flattened_image)
-
-        conjunto_bits=1
-        
-        # Obtener los primeros 10 valores
-        first_10_values = flattened_image[:conjunto_bits]
-        print(first_10_values)
-        
-        # Convertir a binario
-        binary_values = [np.binary_repr(value, width=8) for value in first_10_values]
-        print(binary_values)
-        
-        # Convertir binarios a listas de bits
-        bit_sequences = [[int(bit) for bit in binary_value] for binary_value in binary_values]
-        print(bit_sequences)
-        
-        # Aplanar la lista de listas de bits para la gráfica
-        bit_sequence_flat = [bit for sequence in bit_sequences for bit in sequence]
+        Muestra = flattened_image[:n_bits_por_baudio]
+        binary_values = [np.binary_repr(value, width=8) for value in Muestra]     # Convertir a binario
+        bit_sequences = [[int(bit) for bit in binary_value] for binary_value in binary_values]        # Convertir binarios a listas de bits
+        bit_sequence_flat = [bit for sequence in bit_sequences for bit in sequence]        # Aplanar la lista de listas de bits para la gráfica
         print(bit_sequence_flat)
  
-        # Convertir 0 a -1 en bit_sequence_flat
-        bit_sequence_flat = [-1 if bit == 0 else 1 for bit in bit_sequence_flat]
-        print(bit_sequence_flat)
+        señal_digital_NRZ = [-1 if bit == 0 else 1 for bit in bit_sequence_flat]        # Convertir 0 a -1 en bit_sequence_flat NRZ
 
-        # Calcular el intervalo de tiempo para cada bit
-        longitud_bits_por_segundo = len(bit_sequence_flat)
+        longitud_bits_por_segundo = len(señal_digital_NRZ) #numero de bits en la cadena
         
-        # Crear los valores de tiempo para el eje X
+        # Configuracion de ejes para señal digital
         x_values = np.linspace(0, 1, longitud_bits_por_segundo, endpoint=False)
-        y_values = bit_sequence_flat
+        marcas_en_eje_x = [i * (1 / longitud_bits_por_segundo) for i in range(0, longitud_bits_por_segundo+1)]
+        y_values = señal_digital_NRZ
 
         # Parámetros de la señal cosenoidal
         amplitude = 1.0  # Voltios
@@ -121,24 +121,18 @@ class ImageProcessorApp:
         x_dense = np.linspace(0, 1, 10000)# Necesitamos muchos más puntos para representar adecuadamente una señal de 1 MHz
         cosine_signal = amplitude * np.cos(2 * np.pi * frequency * x_dense)
 
-        # Interpolar la señal digital para que coincida con x_dense
+        # Interpolar la señal digital para que coincida con el tiempo de muestreo del coseno
         interpolation_function = interp1d(x_values, y_values, kind='nearest', fill_value='extrapolate')
         y_interpolated = interpolation_function(x_dense)
-        
-        # Generar la señal modulada AM
-        señal_modulada_AM = (1 + y_interpolated) * (amplitude/2) * np.cos(2 * np.pi * frequency * x_dense)
 
         # Crear una figura con 3 subplots (en una columna)
         fig, axs = plt.subplots(3, 1, figsize=(10, 6))
-
-        sec = [i * (1 / len(bit_sequence_flat)) for i in range(0, len(bit_sequence_flat)+1)]
-
 
         # Primera gráfica: Señal digital original (interpolada)
         axs[0].step(x_dense, y_interpolated, where='post')
         axs[0].set_ylim(-1.5, 1.5)
         axs[0].set_yticks([-1, 0, 1])
-        axs[0].set_xticks(sec)
+        axs[0].set_xticks(marcas_en_eje_x)
         axs[0].set_xlabel('Time (seconds)')
         axs[0].set_ylabel('Bit Value')
         axs[0].set_title('Digital Signal Representation of First 10 Pixel Values in Binary')
@@ -151,8 +145,71 @@ class ImageProcessorApp:
         axs[1].set_ylabel('Amplitude (V)')
         axs[1].grid(True)
 
-        # Tercera gráfica: Señal modulada AM
-        axs[2].plot(x_dense, señal_modulada_AM)
+        #Seleccionando la tecnica de modulacion
+        if self.modulation == "ASK":
+            señal_modulada = (1 + y_interpolated) * (amplitude/2) * np.cos(2 * np.pi * frequency * x_dense)
+        elif self.modulation == "8PSK":
+            phase_map = {
+                (0, 0, 0): -112.5,
+                (0, 0, 1): -157.5,
+                (0, 1, 0): -67.5,
+                (0, 1, 1): -22.5,
+                (1, 0, 0): 112.5,
+                (1, 0, 1): 157.5,
+                (1, 1, 0): 67.5,
+                (1, 1, 1): 22.5
+            }
+            
+            señal_modulada = np.array([])
+
+            for i in range(0, len(bit_sequence_flat), 3):
+                bits = tuple(bit_sequence_flat[i:i+3])
+                if len(bits) < 3:
+                    # Completar con ceros si no hay suficientes bits
+                    bits += (0,) * (3 - len(bits))
+                phase = phase_map[bits]
+                phase_radians = np.deg2rad(phase)
+                signal_segment = np.cos(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//3)] + phase_radians)
+                señal_modulada = np.concatenate((señal_modulada, signal_segment))
+
+        elif self.modulation == "16QAM":
+            amplitude_phase_map = {
+                (0, 0, 0, 0): (0.311, -135),
+                (0, 0, 0, 1): (0.85, -165),
+                (0, 0, 1, 0): (0.311, 45),
+                (0, 0, 1, 1): (0.85, -15),
+                (0, 1, 0, 0): (0.85, -105),
+                (0, 1, 0, 1): (1.161, -135),
+                (0, 1, 1, 0): (0.85, -75),
+                (0, 1, 1, 1): (1.161, -45),
+                (1, 0, 0, 0): (0.311, 135),
+                (1, 0, 0, 1): (0.85, 165),
+                (1, 0, 1, 0): (0.311, 75),
+                (1, 0, 1, 1): (0.85, 15),
+                (1, 1, 0, 0): (0.85, 105),
+                (1, 1, 0, 1): (1.161, 135),
+                (1, 1, 1, 0): (0.85, 75),
+                (1, 1, 1, 1): (1.161, 45)
+            }
+
+            señal_modulada = np.array([])
+            num_segments = len(bit_sequence_flat) // 4
+            segment_length = len(x_dense) // num_segments
+
+            for i in range(0, len(bit_sequence_flat), 4):
+                bits = tuple(bit_sequence_flat[i:i+4])
+                if len(bits) < 4:
+                    bits += (0,) * (4 - len(bits))  # Completar con ceros si no hay suficientes bits
+                amplitude, phase = amplitude_phase_map[bits]
+                phase_radians = np.deg2rad(phase)
+                start_idx = (i // 4) * segment_length
+                end_idx = start_idx + segment_length
+                x_segment = x_dense[start_idx:end_idx]
+                signal_segment = amplitude * np.cos(2 * np.pi * frequency * x_segment + phase_radians)
+                señal_modulada = np.concatenate((señal_modulada, signal_segment))
+
+        # Tercera gráfica: Señal modulada
+        axs[2].plot(x_dense, señal_modulada)
         axs[2].set_title('Señal Modulada AM')
         axs[2].set_xlabel('Time (seconds)')
         axs[2].set_ylabel('Amplitude (V)')
@@ -164,15 +221,14 @@ class ImageProcessorApp:
 
     def modulation_process(self):
         if self.file_type == 'I' and self.image is not None and self.modulation is not None and self.bits is not None:
-            quantization_levels = 2 ** self.bits
-            max_val = 255
-            print(self.image)
-            quantized_image = (self.image / max_val * (quantization_levels - 1)).astype(int)
-            re_quantized_image = (quantized_image / (quantization_levels - 1) * max_val).astype(np.uint8)
-            processed_image = Image.fromarray(re_quantized_image)
-            self.photo = ImageTk.PhotoImage(processed_image)
-            self.canvas.create_image(250, 250, image=self.photo)
-            self.plot_binary_signal(self.image)
+
+            if self.modulation == "ASK":
+                self.plot_binary_signal(self.image, 1)
+            elif self.modulation == "8PSK":
+                self.plot_binary_signal(self.image, 3)
+            elif self.modulation == "16QAM":
+                self.plot_binary_signal(self.image, 5)
+
         elif self.file_type == 'A' and self.audio is not None:
             # Implement audio processing if needed
             pass
