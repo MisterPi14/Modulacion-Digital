@@ -35,6 +35,7 @@ class ImageProcessorApp:
         for bits in range(0, 4):
             self.bits_menu.add_command(label=f"{2**bits} bits", command=lambda b=2**bits: self.set_bits(b))
 
+
         self.file_path = None
         self.file_type = None
         self.modulation = None
@@ -98,24 +99,46 @@ class ImageProcessorApp:
     ########################################  Procesos Audio  ###############################################
 
     def display_audio(self):
-        rate, data = wavfile.read(self.file_path)
+        rate, self.audio = wavfile.read(self.file_path)
         
-        # Crear la figura y el eje
-        fig, ax = plt.subplots(figsize=(5, 4))
-        ax.plot(data)
-        ax.set_title('Audio Signal')
-        ax.set_xlabel('Sample')
-        ax.set_ylabel('Amplitude')
-        
-        # Crear un FigureCanvasTkAgg y colocarlo en el canvas de Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=self.root)
-        canvas.draw()
-        
-        # Obtener el widget de Tkinter del canvas de FigureCanvasTkAgg y colocarlo en el canvas de Tkinter
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        
-        self.audio = data
+        contenedor_graficador = tk.Frame(root)
+        contenedor_graficador.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        figura, self.eje = plt.subplots()
+        lienzo = FigureCanvasTkAgg(figura, contenedor_graficador)
+        widget_lienzo = lienzo.get_tk_widget()
+        widget_lienzo.pack(fill=tk.BOTH, expand=True)
+
+        self.trazar_forma_onda_audio(self.audio)
+
+    def aplicar_resolucion_bits(self, event=None):
+        if self.bits:
+            audio_array = np.frombuffer(b''.join(self.audio), dtype=np.int16)
+            cuantificado = self.cuantificar(audio_array, self.bits)
+            return cuantificado
+           # self.guardar_wav_recuantizado(cuantificado, bits)
+            #self.reproducir_audio_recuantizado(bits)
+
+    def cuantificar(self, audio_array, bits):
+        max_val = np.max(np.abs(audio_array))
+        audio_array = audio_array / max_val
+        dinamicRange = (2 ** bits)-1
+        quantized_audio = np.round(audio_array * dinamicRange) / dinamicRange * max_val
+        return quantized_audio.astype(np.int16)
+    
+    def trazar_forma_onda_audio(self, audio_array):
+        self.eje.clear()
+        self.eje.plot(audio_array)
+        self.eje.set_title("Señal de audio digital")
+        self.eje.set_xlabel("Muestras")
+        self.eje.set_ylabel("Nivel de voltaje")
+        # Ajustar los límites del eje Y para aumentar la escala en amplitud
+        max_amplitud = np.max(np.abs(audio_array))
+        self.eje.set_ylim(-max_amplitud * 1.2, max_amplitud * 1.2)
+        # Ajustar los límites del eje X para aumentar la escala en el tiempo
+        self.eje.set_xlim(0, len(audio_array) * 1.2)
+
+    ########################################  Logica de la aplicacion  ###############################################
 
     def set_modulation(self, modulation_type):
         self.modulation = modulation_type
@@ -261,13 +284,14 @@ class ImageProcessorApp:
                 self.plot_binary_signal(self.imagenRecuantArr, 4)
 
         elif self.file_type == 'A' and self.audio is not None:
-            
+            audioRecuantArr = self.aplicar_resolucion_bits()
+            self.trazar_forma_onda_audio(audioRecuantArr)  # Graficar la señal cuantizada
             if self.modulation == "ASK":
-                self.plot_binary_signal(self.audio, 1)
+                self.plot_binary_signal(audioRecuantArr, 1)
             elif self.modulation == "8PSK":
-                self.plot_binary_signal(self.audio, 3)
+                self.plot_binary_signal(audioRecuantArr, 3)
             elif self.modulation == "16QAM":
-                self.plot_binary_signal(self.audio, 4)
+                self.plot_binary_signal(audioRecuantArr, 4)
     
 root = tk.Tk()
 app = ImageProcessorApp(root)
