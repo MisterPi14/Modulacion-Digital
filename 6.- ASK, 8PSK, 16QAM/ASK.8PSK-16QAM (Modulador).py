@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from scipy.io import wavfile
 from scipy.interpolate import interp1d
 import os
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 class ImageProcessorApp:
     def __init__(self, root):
@@ -31,12 +33,14 @@ class ImageProcessorApp:
         self.bits_menu = Menu(self.menu, tearoff=0)
         self.menu.add_cascade(label="Bits", menu=self.bits_menu)
         for bits in range(0, 4):
-            self.bits_menu.add_command(label=f"{2**bits} bits", command=lambda b=bits: self.set_bits(b))
+            self.bits_menu.add_command(label=f"{2**bits} bits", command=lambda b=2**bits: self.set_bits(b))
 
         self.file_path = None
         self.file_type = None
         self.modulation = None
         self.bits = None
+
+
 
     def open_file(self):
         self.file_type = tk.StringVar()
@@ -68,8 +72,9 @@ class ImageProcessorApp:
             self.file_path = filedialog.askopenfilename(filetypes=[("Audio files", "*.wav")])
             if self.file_path:
                 self.display_audio()
-
+    ########################################  Procesos Imagen  ###############################################
     def display_image(self):
+        #Abriendo foto y creando variable
         image = Image.open(self.file_path)
         image = ImageOps.grayscale(image)
         canvas_width = self.canvas.winfo_width()
@@ -79,14 +84,37 @@ class ImageProcessorApp:
         self.canvas.create_image(250, 250, image=self.photo)
         self.image = np.array(image)
 
+
+    def recuantizar_imagen(self, imagen, n_bits):
+        if not (1 <= n_bits <= 8):
+            raise ValueError("El número de bits debe estar entre 1 y 8")
+
+        niveles = 2 ** n_bits
+        factor = 256 // niveles
+        
+        imagen_recuantizada = (imagen // factor) * factor
+        return imagen_recuantizada
+
+    ########################################  Procesos Audio  ###############################################
+
     def display_audio(self):
         rate, data = wavfile.read(self.file_path)
-        plt.figure(figsize=(10, 4))
-        plt.plot(data)
-        plt.title('Audio Signal')
-        plt.xlabel('Sample')
-        plt.ylabel('Amplitude')
-        plt.show()
+        
+        # Crear la figura y el eje
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.plot(data)
+        ax.set_title('Audio Signal')
+        ax.set_xlabel('Sample')
+        ax.set_ylabel('Amplitude')
+        
+        # Crear un FigureCanvasTkAgg y colocarlo en el canvas de Tkinter
+        canvas = FigureCanvasTkAgg(fig, master=self.root)
+        canvas.draw()
+        
+        # Obtener el widget de Tkinter del canvas de FigureCanvasTkAgg y colocarlo en el canvas de Tkinter
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        
         self.audio = data
 
     def set_modulation(self, modulation_type):
@@ -135,7 +163,7 @@ class ImageProcessorApp:
         axs[0].set_xticks(marcas_en_eje_x)
         axs[0].set_xlabel('Tiempo (segundos)')
         axs[0].set_ylabel('Amplitud (voltaje)')
-        axs[0].set_title('Digital Signal Representation of First 10 Pixel Values in Binary')
+        axs[0].set_title('Señal digital (Primeros 8 baudios)')
         axs[0].grid(True)
 
         # Segunda gráfica: Señal cosenoidal
@@ -221,13 +249,16 @@ class ImageProcessorApp:
 
     def modulation_process(self):
         if self.file_type == 'I' and self.image is not None and self.modulation is not None and self.bits is not None:
-
+            self.imagenRecuantArr = self.recuantizar_imagen(self.image, self.bits)
+            self.imagenRecuantizada = ImageTk.PhotoImage(Image.fromarray(self.imagenRecuantArr))
+            self.canvas.create_image(250, 250, image=self.imagenRecuantizada)
+            print("numero de bits" + str(self.bits))
             if self.modulation == "ASK":
-                self.plot_binary_signal(self.image, 1)
+                self.plot_binary_signal(self.imagenRecuantArr, 1)
             elif self.modulation == "8PSK":
-                self.plot_binary_signal(self.image, 3)
+                self.plot_binary_signal(self.imagenRecuantArr, 3)
             elif self.modulation == "16QAM":
-                self.plot_binary_signal(self.image, 4)
+                self.plot_binary_signal(self.imagenRecuantArr, 4)
 
         elif self.file_type == 'A' and self.audio is not None:
             
