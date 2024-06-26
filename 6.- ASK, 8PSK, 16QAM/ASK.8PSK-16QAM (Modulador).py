@@ -97,9 +97,9 @@ class ImageProcessorApp:
         self.bits = bits
         self.modulation_process()
 
-    def plot_binary_signal(self, image_array, n_bits_por_baudio):
+    def plot_binary_signal(self, secuencia_bits, n_bits_por_baudio):
         
-        flattened_image = image_array.flatten()
+        flattened_image = secuencia_bits.flatten()
         Muestra = flattened_image[:n_bits_por_baudio]
         binary_values = [np.binary_repr(value, width=8) for value in Muestra]     # Convertir a binario
         bit_sequences = [[int(bit) for bit in binary_value] for binary_value in binary_values]        # Convertir binarios a listas de bits
@@ -117,7 +117,7 @@ class ImageProcessorApp:
 
         # Parámetros de la señal cosenoidal
         amplitude = 1.0  # Voltios
-        frequency = 0.5e6  # 5 MHz
+        frequency = 0.15e6  # 5 MHz
         x_dense = np.linspace(0, 1, 10000)# Necesitamos muchos más puntos para representar adecuadamente una señal de 1 MHz
         cosine_signal = amplitude * np.cos(2 * np.pi * frequency * x_dense)
 
@@ -133,16 +133,16 @@ class ImageProcessorApp:
         axs[0].set_ylim(-1.5, 1.5)
         axs[0].set_yticks([-1, 0, 1])
         axs[0].set_xticks(marcas_en_eje_x)
-        axs[0].set_xlabel('Time (seconds)')
-        axs[0].set_ylabel('Bit Value')
+        axs[0].set_xlabel('Tiempo (segundos)')
+        axs[0].set_ylabel('Amplitud (voltaje)')
         axs[0].set_title('Digital Signal Representation of First 10 Pixel Values in Binary')
         axs[0].grid(True)
 
         # Segunda gráfica: Señal cosenoidal
         axs[1].plot(x_dense, cosine_signal)
-        axs[1].set_title('Señal Cosenoidal de 1V y 1MHz')
-        axs[1].set_xlabel('Time (seconds)')
-        axs[1].set_ylabel('Amplitude (V)')
+        axs[1].set_title('Señal portadora Coseno de 1V y 1MHz')
+        axs[1].set_xlabel('Tiempo (segundos)')
+        axs[1].set_ylabel('Amplitud (voltaje)')
         axs[1].grid(True)
 
         #Seleccionando la tecnica de modulacion
@@ -210,9 +210,9 @@ class ImageProcessorApp:
 
         # Tercera gráfica: Señal modulada
         axs[2].plot(x_dense, señal_modulada)
-        axs[2].set_title('Señal Modulada AM')
-        axs[2].set_xlabel('Time (seconds)')
-        axs[2].set_ylabel('Amplitude (V)')
+        axs[2].set_title('Señal Modulada en '+self.modulation)
+        axs[2].set_xlabel('Tiempo (segundos)')
+        axs[2].set_ylabel('Amplitud (voltaje)')
         axs[2].grid(True)
         
         # Ajustar el layout para que las etiquetas no se solapen
@@ -227,11 +227,16 @@ class ImageProcessorApp:
             elif self.modulation == "8PSK":
                 self.plot_binary_signal(self.image, 3)
             elif self.modulation == "16QAM":
-                self.plot_binary_signal(self.image, 5)
+                self.plot_binary_signal(self.image, 4)
 
         elif self.file_type == 'A' and self.audio is not None:
-            # Implement audio processing if needed
-            pass
+            
+            if self.modulation == "ASK":
+                self.plot_binary_signal(self.audio, 1)
+            elif self.modulation == "8PSK":
+                self.plot_binary_signal(self.audio, 3)
+            elif self.modulation == "16QAM":
+                self.plot_binary_signal(self.audio, 4)
     
 root = tk.Tk()
 app = ImageProcessorApp(root)
