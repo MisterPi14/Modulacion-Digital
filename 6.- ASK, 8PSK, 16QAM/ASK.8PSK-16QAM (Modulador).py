@@ -13,9 +13,20 @@ class ImageProcessorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Image Processor")
-        
-        self.canvas = tk.Canvas(root, width=500, height=500)
-        self.canvas.pack()
+
+        # Crear un contenedor común
+        self.container = tk.Frame(root)
+        self.container.pack(fill=tk.BOTH, expand=True)
+
+        # Crear un frame para la imagen
+        self.image_frame = tk.Frame(self.container)
+        self.image_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(self.image_frame, width=500, height=500)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Crear un frame para el audio
+        self.audio_frame = tk.Frame(self.container)
 
         self.menu = Menu(root)
         self.root.config(menu=self.menu)
@@ -75,6 +86,10 @@ class ImageProcessorApp:
                 self.display_audio()
     ########################################  Procesos Imagen  ###############################################
     def display_image(self):
+        # Ocultar el frame de audio si está visible
+        self.audio_frame.pack_forget()
+        # Mostrar el frame de la imagen
+        self.image_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         #Abriendo foto y creando variable
         image = Image.open(self.file_path)
         image = ImageOps.grayscale(image)
@@ -84,7 +99,7 @@ class ImageProcessorApp:
         self.photo = ImageTk.PhotoImage(image)
         self.canvas.create_image(250, 250, image=self.photo)
         self.image = np.array(image)
-
+        print(type(self.image))
 
     def recuantizar_imagen(self, imagen, n_bits):
         if not (1 <= n_bits <= 8):
@@ -100,31 +115,28 @@ class ImageProcessorApp:
 
     def display_audio(self):
         rate, self.audio = wavfile.read(self.file_path)
-        
-        contenedor_graficador = tk.Frame(root)
-        contenedor_graficador.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        print(type(self.audio))
+
+        # Ocultar el frame de la imagen si está visible
+        self.image_frame.pack_forget()
+
+        # Mostrar el frame de audio
+        self.audio_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         figura, self.eje = plt.subplots()
-        lienzo = FigureCanvasTkAgg(figura, contenedor_graficador)
+        lienzo = FigureCanvasTkAgg(figura, self.audio_frame)
         widget_lienzo = lienzo.get_tk_widget()
         widget_lienzo.pack(fill=tk.BOTH, expand=True)
 
         self.trazar_forma_onda_audio(self.audio)
 
-    def aplicar_resolucion_bits(self, event=None):
-        if self.bits:
-            audio_array = np.frombuffer(b''.join(self.audio), dtype=np.int16)
-            cuantificado = self.cuantificar(audio_array, self.bits)
-            return cuantificado
-           # self.guardar_wav_recuantizado(cuantificado, bits)
-            #self.reproducir_audio_recuantizado(bits)
-
-    def cuantificar(self, audio_array, bits):
-        max_val = np.max(np.abs(audio_array))
-        audio_array = audio_array / max_val
-        dinamicRange = (2 ** bits)-1
-        quantized_audio = np.round(audio_array * dinamicRange) / dinamicRange * max_val
-        return quantized_audio.astype(np.int16)
+    def recuantizar_audio(self, audio_array, bits):
+        if bits:
+            max_val = np.max(np.abs(audio_array))
+            audio_unitario = audio_array / max_val
+            dinamicRange = (2 ** bits)-1
+            quantized_audio = np.round(audio_unitario * dinamicRange) / dinamicRange * max_val
+            return quantized_audio.astype(np.int16)
     
     def trazar_forma_onda_audio(self, audio_array):
         self.eje.clear()
@@ -142,19 +154,27 @@ class ImageProcessorApp:
 
     def set_modulation(self, modulation_type):
         self.modulation = modulation_type
-        self.modulation_process()
+        if self.bits is not None:
+            self.modulation_process()
         
     def set_bits(self, bits):
         self.bits = bits
-        self.modulation_process()
+        if self.modulation is not None:
+            self.modulation_process()
 
     def plot_binary_signal(self, secuencia_bits, n_bits_por_baudio):
         
-        flattened_image = secuencia_bits.flatten()
-        Muestra = flattened_image[:n_bits_por_baudio]
-        binary_values = [np.binary_repr(value, width=8) for value in Muestra]     # Convertir a binario
-        bit_sequences = [[int(bit) for bit in binary_value] for binary_value in binary_values]        # Convertir binarios a listas de bits
-        bit_sequence_flat = [bit for sequence in bit_sequences for bit in sequence]        # Aplanar la lista de listas de bits para la gráfica
+        if self.file_type == 'I':
+            flattened_image = secuencia_bits.flatten()
+            Muestra = flattened_image[:n_bits_por_baudio]
+            binary_values = [np.binary_repr(value, width=8) for value in Muestra]     # Convertir a binario
+            bit_sequences = [[int(bit) for bit in binary_value] for binary_value in binary_values]        # Convertir binarios a listas de bits
+            bit_sequence_flat = [bit for sequence in bit_sequences for bit in sequence]        # Aplanar la lista de listas de bits para la gráfica
+        elif self.file_type == 'A':
+            audio_bits = np.unpackbits(np.array(secuencia_bits, dtype=np.uint8))
+            bit_sequence_flat = audio_bits[:n_bits_por_baudio * 8].tolist()
+
+
         print(bit_sequence_flat)
  
         señal_digital_NRZ = [-1 if bit == 0 else 1 for bit in bit_sequence_flat]        # Convertir 0 a -1 en bit_sequence_flat NRZ
@@ -271,7 +291,7 @@ class ImageProcessorApp:
         plt.show()
 
     def modulation_process(self):
-        if self.file_type == 'I' and self.image is not None and self.modulation is not None and self.bits is not None:
+        if self.file_type == 'I' and self.image is not None:
             self.imagenRecuantArr = self.recuantizar_imagen(self.image, self.bits)
             self.imagenRecuantizada = ImageTk.PhotoImage(Image.fromarray(self.imagenRecuantArr))
             self.canvas.create_image(250, 250, image=self.imagenRecuantizada)
@@ -284,14 +304,15 @@ class ImageProcessorApp:
                 self.plot_binary_signal(self.imagenRecuantArr, 4)
 
         elif self.file_type == 'A' and self.audio is not None:
-            audioRecuantArr = self.aplicar_resolucion_bits()
-            self.trazar_forma_onda_audio(audioRecuantArr)  # Graficar la señal cuantizada
+            AudioRecuantizado = self.recuantizar_audio(self.audio, self.bits)
+            self.trazar_forma_onda_audio(AudioRecuantizado)# Graficar la señal cuantizada
             if self.modulation == "ASK":
-                self.plot_binary_signal(audioRecuantArr, 1)
+                self.plot_binary_signal(AudioRecuantizado, 1)
             elif self.modulation == "8PSK":
-                self.plot_binary_signal(audioRecuantArr, 3)
+                self.plot_binary_signal(AudioRecuantizado, 3)
             elif self.modulation == "16QAM":
-                self.plot_binary_signal(audioRecuantArr, 4)
+                self.plot_binary_signal(AudioRecuantizado, 4)
+    #En esta parte poner que bits y modulacion sean none para que deje cambiar ambos en la siguiente prueba
     
 root = tk.Tk()
 app = ImageProcessorApp(root)
