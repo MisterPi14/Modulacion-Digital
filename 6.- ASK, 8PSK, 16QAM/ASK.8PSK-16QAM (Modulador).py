@@ -136,7 +136,7 @@ class ImageProcessorApp:
             audio_unitario = audio_array / max_val
             dinamicRange = (2 ** bits)-1
             quantized_audio = np.round(audio_unitario * dinamicRange) / dinamicRange * max_val
-            return quantized_audio.astype(np.int16)
+            return quantized_audio
     
     def trazar_forma_onda_audio(self, audio_array):
         self.eje.clear()
@@ -287,8 +287,8 @@ class ImageProcessorApp:
         axs[2].grid(True)
         
         # Ajustar el layout para que las etiquetas no se solapen
-        plt.tight_layout()
-        plt.show()
+        fig.tight_layout()
+        fig.show()
 
     def modulation_process(self):
         if self.file_type == 'I' and self.image is not None:
@@ -312,7 +312,9 @@ class ImageProcessorApp:
                 self.plot_binary_signal(AudioRecuantizado, 3)
             elif self.modulation == "16QAM":
                 self.plot_binary_signal(AudioRecuantizado, 4)
-    #En esta parte poner que bits y modulacion sean none para que deje cambiar ambos en la siguiente prueba
+        
+        self.modulation = None
+        self.bits = None
     
 root = tk.Tk()
 app = ImageProcessorApp(root)
