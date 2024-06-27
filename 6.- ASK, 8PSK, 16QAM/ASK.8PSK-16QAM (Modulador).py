@@ -115,7 +115,6 @@ class ImageProcessorApp:
 
     def display_audio(self):
         rate, self.audio = wavfile.read(self.file_path)
-        print(type(self.audio))
 
         # Ocultar el frame de la imagen si está visible
         self.image_frame.pack_forget()
@@ -198,7 +197,7 @@ class ImageProcessorApp:
         amplitude = 1.0  # Voltios
         frequency = 0.15e6  # 5 MHz
         x_dense = np.linspace(0, 1, 10000)# Necesitamos muchos más puntos para representar adecuadamente una señal de 1 MHz
-        cosine_signal = amplitude * np.cos(2 * np.pi * frequency * x_dense)
+        cosine_signal = amplitude * np.sin(2 * np.pi * frequency * x_dense)
 
         # Interpolar la señal digital para que coincida con el tiempo de muestreo del coseno
         interpolation_function = interp1d(x_values, y_values, kind='nearest', fill_value='extrapolate')
@@ -219,7 +218,7 @@ class ImageProcessorApp:
 
         # Segunda gráfica: Señal cosenoidal
         axs[1].plot(x_dense, cosine_signal)
-        axs[1].set_title('Señal portadora Coseno de 1V y 1MHz')
+        axs[1].set_title('Señal portadora senoidal de 1V y 1MHz')
         axs[1].set_xlabel('Tiempo (segundos)')
         axs[1].set_ylabel('Amplitud (voltaje)')
         axs[1].grid(True)
@@ -247,8 +246,9 @@ class ImageProcessorApp:
                     # Completar con ceros si no hay suficientes bits
                     bits += (0,) * (3 - len(bits))
                 phase = phase_map[bits]
-                phase_radians = np.deg2rad(phase)
-                signal_segment = np.cos(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//3)] + phase_radians)
+                print(bits, phase)
+                #phase_radians = np.deg2rad(phase)
+                signal_segment = np.cos(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//3)] + phase)
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         elif self.modulation == "16QAM":
@@ -280,11 +280,12 @@ class ImageProcessorApp:
                 if len(bits) < 4:
                     bits += (0,) * (4 - len(bits))  # Completar con ceros si no hay suficientes bits
                 amplitude, phase = amplitude_phase_map[bits]
-                phase_radians = np.deg2rad(phase)
+                print(bits, amplitude, phase)
+                #phase_radians = np.deg2rad(phase)
                 start_idx = (i // 4) * segment_length
                 end_idx = start_idx + segment_length
                 x_segment = x_dense[start_idx:end_idx]
-                signal_segment = amplitude * np.cos(2 * np.pi * frequency * x_segment + phase_radians)
+                signal_segment = amplitude * np.cos(2 * np.pi * frequency * x_segment + phase)
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         # Tercera gráfica: Señal modulada
@@ -303,7 +304,6 @@ class ImageProcessorApp:
             self.imagenRecuantArr = self.recuantizar_imagen(self.image, self.bits)
             self.imagenRecuantizada = ImageTk.PhotoImage(Image.fromarray(self.imagenRecuantArr))
             self.canvas.create_image(250, 250, image=self.imagenRecuantizada)
-            print("numero de bits" + str(self.bits))
             if self.modulation == "ASK":
                 self.plot_binary_signal(self.imagenRecuantArr, 1)
             elif self.modulation == "8PSK":
