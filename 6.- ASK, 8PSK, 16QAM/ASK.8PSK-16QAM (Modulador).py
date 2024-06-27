@@ -123,6 +123,10 @@ class ImageProcessorApp:
         # Mostrar el frame de audio
         self.audio_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
+        # Limpiar cualquier figura previa
+        for widget in self.audio_frame.winfo_children():
+            widget.destroy()
+
         figura, self.eje = plt.subplots()
         lienzo = FigureCanvasTkAgg(figura, self.audio_frame)
         widget_lienzo = lienzo.get_tk_widget()
@@ -149,6 +153,10 @@ class ImageProcessorApp:
         self.eje.set_ylim(-max_amplitud * 1.2, max_amplitud * 1.2)
         # Ajustar los límites del eje X para aumentar la escala en el tiempo
         self.eje.set_xlim(0, len(audio_array) * 1.2)
+
+        # Actualizar el lienzo
+        self.eje.figure.canvas.draw()
+
 
     ########################################  Logica de la aplicacion  ###############################################
 
