@@ -99,7 +99,6 @@ class ImageProcessorApp:
         self.photo = ImageTk.PhotoImage(image)
         self.canvas.create_image(250, 250, image=self.photo)
         self.image = np.array(image)
-        print(type(self.image))
 
     def recuantizar_imagen(self, imagen, n_bits):
         if not (1 <= n_bits <= 8):
@@ -190,9 +189,10 @@ class ImageProcessorApp:
         
         # Configuracion de ejes para señal digital
         x_values = np.linspace(0, 1, longitud_bits_por_segundo, endpoint=False)
-        marcas_en_eje_x = [i * (1 / longitud_bits_por_segundo) for i in range(0, longitud_bits_por_segundo+1)]
-        y_values = señal_digital_NRZ
+        x_values = np.append(x_values, 1)  # Aseguramos incluir el último valor en el eje x
+        y_values = np.append(señal_digital_NRZ, señal_digital_NRZ[-1])  # Duplicar el último valor de y para asegurar el paso
 
+    
         # Parámetros de la señal cosenoidal
         amplitude = 1.0  # Voltios
         frequency = 0.15e6  # 5 MHz
@@ -207,10 +207,11 @@ class ImageProcessorApp:
         fig, axs = plt.subplots(3, 1, figsize=(10, 6))
 
         # Primera gráfica: Señal digital original (interpolada)
-        axs[0].step(x_dense, y_interpolated, where='post')
+        #axs[0].step(x_dense, y_interpolated, where='post')
+        axs[0].step(x_values, y_values, where='post')
         axs[0].set_ylim(-1.5, 1.5)
         axs[0].set_yticks([-1, 0, 1])
-        axs[0].set_xticks(marcas_en_eje_x)
+        axs[0].set_xticks(np.linspace(0, 1, longitud_bits_por_segundo + 1))
         axs[0].set_xlabel('Tiempo (segundos)')
         axs[0].set_ylabel('Amplitud (voltaje)')
         axs[0].set_title('Señal digital (Primeros 8 baudios)')
@@ -246,9 +247,9 @@ class ImageProcessorApp:
                     # Completar con ceros si no hay suficientes bits
                     bits += (0,) * (3 - len(bits))
                 phase = phase_map[bits]
-                print(bits, phase)
-                #phase_radians = np.deg2rad(phase)
-                signal_segment = np.cos(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//3)] + phase)
+                phase_radians = np.deg2rad(phase)
+                print(bits, phase, phase_radians)
+                signal_segment = np.sin(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//3)] + phase_radians)
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         elif self.modulation == "16QAM":
@@ -280,12 +281,12 @@ class ImageProcessorApp:
                 if len(bits) < 4:
                     bits += (0,) * (4 - len(bits))  # Completar con ceros si no hay suficientes bits
                 amplitude, phase = amplitude_phase_map[bits]
-                print(bits, amplitude, phase)
-                #phase_radians = np.deg2rad(phase)
+                phase_radians = np.deg2rad(phase)
+                print(bits, amplitude, phase, phase_radians)
                 start_idx = (i // 4) * segment_length
                 end_idx = start_idx + segment_length
                 x_segment = x_dense[start_idx:end_idx]
-                signal_segment = amplitude * np.cos(2 * np.pi * frequency * x_segment + phase)
+                signal_segment = amplitude * np.sin(2 * np.pi * frequency * x_segment + phase_radians)
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         # Tercera gráfica: Señal modulada
