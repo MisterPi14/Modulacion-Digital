@@ -274,8 +274,8 @@ class ImageProcessorApp:
             }
 
             señal_modulada = np.array([])
-            num_segments = len(bit_sequence_flat) // 4
-            segment_length = len(x_dense) // num_segments
+            #num_segments = len(bit_sequence_flat) // 4
+            #segment_length = len(x_dense) // num_segments
 
             for i in range(0, len(bit_sequence_flat), 4):
                 bits = tuple(bit_sequence_flat[i:i+4])
@@ -284,10 +284,11 @@ class ImageProcessorApp:
                 amplitude, phase = amplitude_phase_map[bits]
                 phase_radians = np.deg2rad(phase)
                 print(bits, amplitude, phase, phase_radians)
-                start_idx = (i // 4) * segment_length
-                end_idx = start_idx + segment_length
-                x_segment = x_dense[start_idx:end_idx]
-                signal_segment = amplitude * np.sin(2 * np.pi * frequency * x_segment + phase_radians)
+                #start_idx = (i // 4) * segment_length
+                #end_idx = start_idx + segment_length
+                #x_segment = x_dense[start_idx:end_idx]
+                #signal_segment = amplitude * np.sin(2 * np.pi * frequency * x_segment + phase_radians)
+                signal_segment = amplitude * np.sin(2 * np.pi * frequency * x_dense[i:i+10000//(len(bit_sequence_flat)//4)] + phase_radians)#Esta en lugar de lo comentado
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         # Tercera gráfica: Señal modulada
