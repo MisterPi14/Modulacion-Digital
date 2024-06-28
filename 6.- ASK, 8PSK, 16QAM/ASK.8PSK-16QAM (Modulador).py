@@ -207,8 +207,6 @@ class ImageProcessorApp:
         fig, axs = plt.subplots(3, 1, figsize=(10, 6))
 
         # Primera gráfica: Señal digital original (interpolada)
-        #axs[0].step(x_dense, y_interpolated, where='post')
-        axs[0].step(x_values, y_values, where='post')
         axs[0].set_ylim(-1.5, 1.5)
         axs[0].set_yticks([-1, 0, 1])
         axs[0].set_xticks(np.linspace(0, 1, longitud_bits_por_segundo + 1))
@@ -226,8 +224,10 @@ class ImageProcessorApp:
 
         #Seleccionando la tecnica de modulacion
         if self.modulation == "ASK":
-            señal_modulada = (1 + y_interpolated) * (amplitude/2) * np.cos(2 * np.pi * frequency * x_dense)
+            axs[0].step(x_dense, y_interpolated, where='post')#Tiempo con señal digital desalineada, necesario para coincidir con la modulada
+            señal_modulada = (1 + y_interpolated) * (amplitude/2) * np.sin(2 * np.pi * frequency * x_dense)
         elif self.modulation == "8PSK":
+            axs[0].step(x_values, y_values, where='post')#Tiempo para alinear la señal digital
             phase_map = {
                 (0, 0, 0): -112.5,
                 (0, 0, 1): -157.5,
@@ -253,6 +253,7 @@ class ImageProcessorApp:
                 señal_modulada = np.concatenate((señal_modulada, signal_segment))
 
         elif self.modulation == "16QAM":
+            axs[0].step(x_values, y_values, where='post')#Tiempo para alinear la señal digital
             amplitude_phase_map = {
                 (0, 0, 0, 0): (0.311, -135),
                 (0, 0, 0, 1): (0.85, -165),
